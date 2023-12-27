@@ -6,19 +6,37 @@ namespace Moka.MongoDB
 {
     public static class MongoClientExtansion
     {
-        public static string CreateIndex<T>(this IMongoCollection<T> collection, bool unique, params string[] fields)
+        public enum Order
         {
-            var indexKeysDefinitionList = new List<IndexKeysDefinition<T>>();
+            Asc,
+            Desc
+        }
+
+        public static string CreateIndex<T>(this IMongoCollection<T> collection, Order order, bool unique, params string[] fields)
+        {
+            var indexKeys = new List<IndexKeysDefinition<T>>();
             for (int i = 0; i < fields.Length; i++)
             {
-                IndexKeysDefinition<T> item = Builders<T>.IndexKeys.Descending(fields[i]);
-                indexKeysDefinitionList.Add(item);
+                IndexKeysDefinition<T> indexKey;
+                switch (order)
+                {
+                    //case Order.Asc:
+                    //    break;
+                    case Order.Desc:
+                        indexKey = Builders<T>.IndexKeys.Descending(fields[i]);
+                        indexKeys.Add(indexKey);
+                        break;
+                    default:
+                        indexKey = Builders<T>.IndexKeys.Ascending(fields[i]);
+                        indexKeys.Add(indexKey);
+                        break;
+                }
             }
-            IndexKeysDefinition<T> combine = Builders<T>.IndexKeys.Combine(indexKeysDefinitionList);
-            
+            IndexKeysDefinition<T> combine = Builders<T>.IndexKeys.Combine(indexKeys);
+
             var createIndexOptions = new CreateIndexOptions { Unique = unique };
-            
-            CreateIndexModel<T> createIndexModel = new CreateIndexModel<T>(combine, createIndexOptions);
+
+            var createIndexModel = new CreateIndexModel<T>(combine, createIndexOptions);
             return collection.Indexes.CreateOne(createIndexModel);
         }
 
